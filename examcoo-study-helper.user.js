@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Examcoo Study Helper
 // @namespace    local.codex.examcoo.study-helper
-// @version      0.5.3
+// @version      0.5.4
 // @description  考试酷本地学习测试助手：只保存成绩页公布的正确答案，自动回填已收录题目，AI 仅临时补充未作答题，不自动提交。
 // @homepageURL  https://github.com/qiu7c/Examcoo-study-helper
 // @supportURL   https://github.com/qiu7c/Examcoo-study-helper/issues
@@ -557,8 +557,8 @@
         button:disabled{opacity:.55;cursor:wait}input[type="password"],input[type="text"]{box-sizing:border-box;width:100%;padding:5px;border:1px solid #9aabba;border-radius:4px;margin:3px 0}
         details{border-top:1px solid #dde5ec;margin-top:7px;padding-top:6px}summary{cursor:pointer;color:#345}
         button:hover{background:#dceeff}.status{line-height:1.45;color:#456;margin-top:7px;word-break:break-all}
-        label{display:flex;align-items:center;gap:5px;margin-top:7px}.hint{color:#8a4b08;font-size:12px;margin-top:6px}
-        .contact{border-top:1px solid #dde5ec;margin-top:8px;padding-top:7px;font-size:12px;line-height:1.55;word-break:break-all}
+        label{display:flex;align-items:center;gap:5px;margin-top:7px}
+        .contact{font-size:12px;line-height:1.55;word-break:break-all}
         .contact a{color:#356b9a;text-decoration:none}.contact a:hover{text-decoration:underline}
       </style>
       <div class="panel">
@@ -575,12 +575,12 @@
           <input id="ai-model" type="text" placeholder="模型名称">
           <div class="row"><button id="ai-save">保存设置</button><button id="ai-clear">清除密钥</button></div>
         </details>
-        <div class="hint">不会点击“检查”“临时保存”或“交卷”。</div>
         <div class="status" id="status"></div>
-        <div class="contact">
-          GitHub：<a href="https://github.com/qiu7c/Examcoo-study-helper" target="_blank" rel="noopener noreferrer">qiu7c/Examcoo-study-helper</a><br>
-          邮箱：<a href="mailto:xcc575838@gmail.com">xcc575838@gmail.com</a>
-        </div>
+        <details class="contact">
+          <summary>关于与联系</summary>
+          <div>GitHub：<a href="https://github.com/qiu7c/Examcoo-study-helper" target="_blank" rel="noopener noreferrer">项目主页</a></div>
+          <div>邮箱：<a href="mailto:xcc575838@gmail.com">xcc575838@gmail.com</a></div>
+        </details>
       </div>`;
     document.body.appendChild(host);
     statusNode = root.getElementById('status');
