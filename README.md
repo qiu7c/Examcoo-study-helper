@@ -50,7 +50,6 @@
 ## 项目地址与联系
 
 - GitHub：[https://github.com/qiu7c/Examcoo-study-helper](https://github.com/qiu7c/Examcoo-study-helper)
-- SSH：`git@github.com:qiu7c/Examcoo-study-helper.git`
 - 邮箱：[xcc575838@gmail.com](mailto:xcc575838@gmail.com)
 
 ## 使用声明
