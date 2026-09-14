@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Examcoo Study Helper
 // @namespace    local.codex.examcoo.study-helper
-// @version      0.5.4
+// @version      0.5.5
 // @description  考试酷本地学习测试助手：只保存成绩页公布的正确答案，自动回填已收录题目，AI 仅临时补充未作答题，不自动提交。
 // @homepageURL  https://github.com/qiu7c/Examcoo-study-helper
 // @supportURL   https://github.com/qiu7c/Examcoo-study-helper/issues
@@ -23,7 +23,9 @@
 
   const BANK_KEY = 'examcoo_local_answer_bank_v1';
   const AI_KEY = 'examcoo_deepseek_config_v1';
+  const UI_KEY = 'examcoo_helper_ui_v1';
   const aiConfig = Object.assign({ apiKey: '', model: 'deepseek-v4-flash' }, GM_getValue(AI_KEY, {}));
+  const uiState = Object.assign({ left: null, top: 70 }, GM_getValue(UI_KEY, {}));
   const storedBank = GM_getValue(BANK_KEY, {});
   let bank = keepOfficialAnswersOnly(storedBank);
   const storedCount = storedBank && typeof storedBank === 'object' && !Array.isArray(storedBank)
@@ -547,12 +549,18 @@
     const host = document.createElement('div');
     host.id = 'examcoo-helper-host';
     host.style.cssText = 'position:fixed;right:14px;top:70px;z-index:2147483647;font-family:Arial,"Microsoft YaHei",sans-serif;';
+    if (Number.isFinite(Number(uiState.left))) {
+      host.style.left = `${Math.max(0, Number(uiState.left))}px`;
+      host.style.right = 'auto';
+    }
+    if (Number.isFinite(Number(uiState.top))) host.style.top = `${Math.max(0, Number(uiState.top))}px`;
     const root = host.attachShadow({ mode: 'open' });
     panelRoot = root;
     root.innerHTML = `
       <style>
-        .panel{width:250px;background:#fff;border:1px solid #7893ad;border-radius:8px;box-shadow:0 5px 20px #0003;padding:10px;color:#223;font-size:13px}
-        .title{font-weight:700;margin-bottom:8px}.row{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+        [hidden]{display:none!important}.panel{width:250px;background:#fff;border:1px solid #7893ad;border-radius:8px;box-shadow:0 5px 20px #0003;color:#223;font-size:13px;overflow:hidden}
+        .header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 9px;background:#f3f7fa;cursor:move;user-select:none}.title{font-weight:700;white-space:nowrap}.body{padding:2px 10px 9px}
+        .window-actions{display:flex;gap:3px}.window-actions button{width:24px;height:22px;padding:0;font-size:15px;line-height:18px}.row{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
         button{border:1px solid #7692ad;background:#edf5fc;border-radius:4px;padding:5px 8px;cursor:pointer;color:#234}
         button:disabled{opacity:.55;cursor:wait}input[type="password"],input[type="text"]{box-sizing:border-box;width:100%;padding:5px;border:1px solid #9aabba;border-radius:4px;margin:3px 0}
         details{border-top:1px solid #dde5ec;margin-top:7px;padding-top:6px}summary{cursor:pointer;color:#345}
@@ -560,27 +568,35 @@
         label{display:flex;align-items:center;gap:5px;margin-top:7px}
         .contact{font-size:12px;line-height:1.55;word-break:break-all}
         .contact a{color:#356b9a;text-decoration:none}.contact a:hover{text-decoration:underline}
+        .notice{margin:5px 0;color:#8a4b08}.restore{box-shadow:0 3px 12px #0003;border-radius:14px;padding:6px 10px;font-weight:700}
       </style>
-      <div class="panel">
-        <div class="title">考试酷学习助手 · <span id="mode"></span></div>
-        <div class="row">
-          <button id="scan">重新识别</button><button id="fill" data-mode="exam">回填已保存</button>
-          <button id="ai-answer" data-mode="exam">AI分析未作答题</button>
-          <button id="harvest" data-mode="result">保存本页正确答案</button>
-          <button id="import">导入题库</button><button id="export">导出题库</button>
+      <button class="restore" id="restore" hidden>助手</button>
+      <div class="panel" id="panel">
+        <div class="header" id="drag-handle">
+          <div class="title">考试酷学习助手 · <span id="mode"></span></div>
+          <div class="window-actions"><button id="minimize" title="收起">−</button><button id="close" title="隐藏">×</button></div>
         </div>
-        <details id="ai-settings" data-mode="exam">
-          <summary>DeepSeek 设置</summary>
-          <input id="ai-key" type="password" autocomplete="off" placeholder="API Key（留空则保留原密钥）">
-          <input id="ai-model" type="text" placeholder="模型名称">
-          <div class="row"><button id="ai-save">保存设置</button><button id="ai-clear">清除密钥</button></div>
-        </details>
-        <div class="status" id="status"></div>
-        <details class="contact">
-          <summary>关于与联系</summary>
-          <div>GitHub：<a href="https://github.com/qiu7c/Examcoo-study-helper" target="_blank" rel="noopener noreferrer">项目主页</a></div>
-          <div>邮箱：<a href="mailto:xcc575838@gmail.com">xcc575838@gmail.com</a></div>
-        </details>
+        <div class="body" id="panel-body">
+          <div class="row">
+            <button id="scan">重新识别</button><button id="fill" data-mode="exam">回填已保存</button>
+            <button id="ai-answer" data-mode="exam">AI分析未作答题</button>
+            <button id="harvest" data-mode="result">保存本页正确答案</button>
+            <button id="import">导入题库</button><button id="export">导出题库</button>
+          </div>
+          <details id="ai-settings" data-mode="exam">
+            <summary>DeepSeek 设置</summary>
+            <input id="ai-key" type="password" autocomplete="off" placeholder="API Key（留空则保留原密钥）">
+            <input id="ai-model" type="text" placeholder="模型名称">
+            <div class="row"><button id="ai-save">保存设置</button><button id="ai-clear">清除密钥</button></div>
+          </details>
+          <div class="status" id="status"></div>
+          <details class="contact">
+            <summary>关于</summary>
+            <div class="notice">仅供学习交流，请勿用于任何作弊行为。</div>
+            <div>GitHub：<a href="https://github.com/qiu7c/Examcoo-study-helper" target="_blank" rel="noopener noreferrer">项目主页</a></div>
+            <div>邮箱：<a href="mailto:xcc575838@gmail.com">xcc575838@gmail.com</a></div>
+          </details>
+        </div>
       </div>`;
     document.body.appendChild(host);
     statusNode = root.getElementById('status');
@@ -590,6 +606,56 @@
     root.querySelectorAll('[data-mode]').forEach((element) => {
       element.style.display = element.dataset.mode === mode ? '' : 'none';
     });
+    const panel = root.getElementById('panel');
+    const panelBody = root.getElementById('panel-body');
+    const minimizeButton = root.getElementById('minimize');
+    const closeButton = root.getElementById('close');
+    const restoreButton = root.getElementById('restore');
+    minimizeButton.addEventListener('click', () => {
+      const collapsed = !panelBody.hidden;
+      panelBody.hidden = collapsed;
+      minimizeButton.textContent = collapsed ? '+' : '−';
+      minimizeButton.title = collapsed ? '展开' : '收起';
+    });
+    closeButton.addEventListener('click', () => {
+      panel.hidden = true;
+      restoreButton.hidden = false;
+    });
+    restoreButton.addEventListener('click', () => {
+      restoreButton.hidden = true;
+      panel.hidden = false;
+    });
+
+    let dragState = null;
+    const dragHandle = root.getElementById('drag-handle');
+    dragHandle.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0 || event.target.closest('button')) return;
+      const rect = host.getBoundingClientRect();
+      host.style.left = `${rect.left}px`;
+      host.style.top = `${rect.top}px`;
+      host.style.right = 'auto';
+      dragState = { pointerId: event.pointerId, offsetX: event.clientX - rect.left, offsetY: event.clientY - rect.top };
+      dragHandle.setPointerCapture(event.pointerId);
+      event.preventDefault();
+    });
+    dragHandle.addEventListener('pointermove', (event) => {
+      if (!dragState || event.pointerId !== dragState.pointerId) return;
+      const maxLeft = Math.max(0, window.innerWidth - host.offsetWidth);
+      const maxTop = Math.max(0, window.innerHeight - host.offsetHeight);
+      const left = Math.min(maxLeft, Math.max(0, event.clientX - dragState.offsetX));
+      const top = Math.min(maxTop, Math.max(0, event.clientY - dragState.offsetY));
+      host.style.left = `${left}px`;
+      host.style.top = `${top}px`;
+    });
+    const finishDrag = (event) => {
+      if (!dragState || event.pointerId !== dragState.pointerId) return;
+      dragState = null;
+      uiState.left = parseFloat(host.style.left) || 0;
+      uiState.top = parseFloat(host.style.top) || 0;
+      GM_setValue(UI_KEY, uiState);
+    };
+    dragHandle.addEventListener('pointerup', finishDrag);
+    dragHandle.addEventListener('pointercancel', finishDrag);
     root.getElementById('scan').addEventListener('click', () => { questions = readQuestions(); mapQuestions(); });
     root.getElementById('fill').addEventListener('click', () => fillSaved(true));
     root.getElementById('ai-answer').addEventListener('click', answerWithAi);
